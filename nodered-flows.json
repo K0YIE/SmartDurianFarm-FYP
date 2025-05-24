@@ -1,0 +1,445 @@
+[
+    {
+        "id": "d0cd1e2d91e4938f",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "2ea1702313a1b263",
+        "type": "mqtt in",
+        "z": "d0cd1e2d91e4938f",
+        "name": "",
+        "topic": "esp32/fyp",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "2befd4e689325c9e",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 300,
+        "y": 340,
+        "wires": [
+            [
+                "26084cd40ecdc8d3",
+                "fbaac35a4d3de59d"
+            ]
+        ]
+    },
+    {
+        "id": "26084cd40ecdc8d3",
+        "type": "function",
+        "z": "d0cd1e2d91e4938f",
+        "name": "function 1",
+        "func": "var region = msg.payload.region;  // \"Region 1\" or \"Region 2\"\nvar state = msg.payload.state;    // Vibration state: 0 or 1\n\n// Convert state to readable label\nvar readableState = (state === 1) ? \"Detected\" : \"Not Detected\";\n\nvar region1Output = null;\nvar region2Output = null;\nvar dbQuery = \"\";\n\n// Generate timestamp\nvar timestamp = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\n// Set location URL (customize based on region if needed)\nvar locationUrl = \"YOUR_MAP_URL\";\n\n// Determine which region is updated\nif (region === \"Region 1\") {\n    region1Output = { payload: readableState };\n    dbQuery = `INSERT INTO project1 (region1, time1) VALUES ('${readableState}', '${timestamp}')`;\n} else if (region === \"Region 2\") {\n    region2Output = { payload: readableState };\n    dbQuery = `INSERT INTO project1 (region2, time2) VALUES ('${readableState}', '${timestamp}')`;\n}\n\n// Prepare database entry\nvar dbData = { topic: dbQuery };\n\n// Prepare Telegram alert (only if vibration is detected)\nvar telegramMsg = null;\nif (state === 1) {\n    telegramMsg = {\n        payload: {\n            chatId: ,  // Replace with your actual Telegram Chat ID\n            type: \"message\",\n            content: `📢 *Alert!*\\n⚠️ Vibration *Detected* in *${region}* at ${timestamp}.\\n\\n📍 Location: [View on Map](${locationUrl})`\n        }\n    };\n}\n\n// Route outputs: [Region 1 Dashboard, Region 2 Dashboard, Telegram, Database]\nreturn [region1Output, region2Output, telegramMsg, dbData];\n",
+        "outputs": 4,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 340,
+        "wires": [
+            [
+                "812fbe44be6684de"
+            ],
+            [
+                "7331923174e2b1a6"
+            ],
+            [
+                "eb73775346868190"
+            ],
+            [
+                "ecb372dae399db5f",
+                "d513235ae2702fa2"
+            ]
+        ]
+    },
+    {
+        "id": "812fbe44be6684de",
+        "type": "ui_text",
+        "z": "d0cd1e2d91e4938f",
+        "group": "",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Region1",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 720,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "7331923174e2b1a6",
+        "type": "ui_text",
+        "z": "d0cd1e2d91e4938f",
+        "group": "",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Region2",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": 16,
+        "color": "#000000",
+        "x": 720,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "eb73775346868190",
+        "type": "telegram sender",
+        "z": "d0cd1e2d91e4938f",
+        "name": "",
+        "bot": "517afa01a516efe7",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 730,
+        "y": 320,
+        "wires": [
+            [
+                "cc802f91603cc64b"
+            ]
+        ]
+    },
+    {
+        "id": "ecb372dae399db5f",
+        "type": "mysql",
+        "z": "d0cd1e2d91e4938f",
+        "mydb": "3f2f59690da0787d",
+        "name": "",
+        "x": 710,
+        "y": 380,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "db56dacee8af9a15",
+        "type": "mqtt in",
+        "z": "d0cd1e2d91e4938f",
+        "name": "GPS Data",
+        "topic": "esp32/gps",
+        "qos": "2",
+        "datatype": "json",
+        "broker": "2befd4e689325c9e",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 300,
+        "y": 440,
+        "wires": [
+            [
+                "2973cd6b5fb568e0"
+            ]
+        ]
+    },
+    {
+        "id": "2973cd6b5fb568e0",
+        "type": "function",
+        "z": "d0cd1e2d91e4938f",
+        "name": "GPS Processing",
+        "func": "var lat = parseFloat(msg.payload.latitude || msg.payload.lat);\nvar lon = parseFloat(msg.payload.longitude || msg.payload.lon);\n\nif (isNaN(lat) || isNaN(lon)) {\n    node.error(\"Invalid or missing latitude/longitude\", msg);\n    return null;\n}\n\nvar timestamp = new Date().toISOString().slice(0, 19).replace(\"T\", \" \");\n\nmsg.topic = \"INSERT INTO gps (latitude, longitude, timestamp) VALUES (?, ?, ?)\";\nmsg.payload = [lat, lon, timestamp];\n\nreturn null;\n",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 440,
+        "wires": [
+            [
+                "2e41351fe4088ec0"
+            ],
+            [
+                "877a34a5852c5227"
+            ]
+        ]
+    },
+    {
+        "id": "2e41351fe4088ec0",
+        "type": "ui_text",
+        "z": "d0cd1e2d91e4938f",
+        "group": "9de30ba9f4bd7411",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "name": "GPS Display",
+        "label": "GPS Coordinates",
+        "format": "{{msg.payload}}",
+        "layout": "",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 730,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "877a34a5852c5227",
+        "type": "mysql",
+        "z": "d0cd1e2d91e4938f",
+        "mydb": "3f2f59690da0787d",
+        "name": "",
+        "x": 710,
+        "y": 480,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1cb264e9843b3669",
+        "type": "mqtt in",
+        "z": "d0cd1e2d91e4938f",
+        "name": "",
+        "topic": "monkey/detection",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "2befd4e689325c9e",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 520,
+        "wires": [
+            [
+                "ca0a8a8374e5e9cc"
+            ]
+        ]
+    },
+    {
+        "id": "ca0a8a8374e5e9cc",
+        "type": "debug",
+        "z": "d0cd1e2d91e4938f",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "bdc796fc5d2a78ea",
+        "type": "mqtt in",
+        "z": "d0cd1e2d91e4938f",
+        "name": "",
+        "topic": "durian/count",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "2befd4e689325c9e",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 290,
+        "y": 600,
+        "wires": [
+            [
+                "bfddc9bcfb61bc96"
+            ]
+        ]
+    },
+    {
+        "id": "bfddc9bcfb61bc96",
+        "type": "function",
+        "z": "d0cd1e2d91e4938f",
+        "name": "function 2",
+        "func": "let count = msg.payload.durian_count;\nlet ts = msg.payload.timestamp;\nmsg.topic = `INSERT INTO durian_count (durian_count, timestamp) VALUES (${count}, '${ts}')`;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 600,
+        "wires": [
+            [
+                "ed2091cbeabe24c9"
+            ]
+        ]
+    },
+    {
+        "id": "ed2091cbeabe24c9",
+        "type": "mysql",
+        "z": "d0cd1e2d91e4938f",
+        "mydb": "077e677bd7be1ef7",
+        "name": "",
+        "x": 710,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fbaac35a4d3de59d",
+        "type": "debug",
+        "z": "d0cd1e2d91e4938f",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 480,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "d513235ae2702fa2",
+        "type": "debug",
+        "z": "d0cd1e2d91e4938f",
+        "name": "debug 3",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 680,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "cc802f91603cc64b",
+        "type": "debug",
+        "z": "d0cd1e2d91e4938f",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "2befd4e689325c9e",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "broker.emqx.io",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "517afa01a516efe7",
+        "type": "telegram bot",
+        "botname": "FYP-tele",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "pollinterval": 300,
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": 6667,
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbothost": "",
+        "localbotport": 8443,
+        "publicbotport": 8443,
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "3f2f59690da0787d",
+        "type": "MySQLdatabase",
+        "name": "",
+        "host": "127.0.0.1",
+        "port": "3306",
+        "db": "fyp",
+        "tz": "",
+        "charset": "UTF8"
+    },
+    {
+        "id": "9de30ba9f4bd7411",
+        "type": "ui_group",
+        "name": "FYP",
+        "tab": "aa5b26143719a88e",
+        "order": 1,
+        "disp": true,
+        "width": 6,
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "077e677bd7be1ef7",
+        "type": "MySQLdatabase",
+        "name": "",
+        "host": "127.0.0.1",
+        "port": "3306",
+        "db": "fyp",
+        "tz": "",
+        "charset": "UTF8"
+    },
+    {
+        "id": "aa5b26143719a88e",
+        "type": "ui_tab",
+        "name": "project",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]
+
+
